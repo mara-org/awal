@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "codex/**"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package and scanner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Run tests
+        run: python -m unittest discover -s tests
+
+      - name: Compile sources
+        run: python -m compileall src tests
+
+      - name: Clean example passes
+        run: awal examples/clean-app
+
+      - name: Broken example blocks
+        run: |
+          set +e
+          awal examples/broken-app --fail-on high > /tmp/awal-broken.txt
+          code=$?
+          cat /tmp/awal-broken.txt
+          if [ "$code" -ne 2 ]; then
+            echo "Expected broken example to exit 2, got $code"
+            exit 1
+          fi
+
+  action-smoke:
+    name: Composite action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Action passes clean example
+        uses: ./
+        with:
+          path: examples/clean-app
+          fail-on: high
+
+      - name: Action blocks broken example
+        id: broken
+        uses: ./
+        continue-on-error: true
+        with:
+          path: examples/broken-app
+          fail-on: high
+
+      - name: Assert broken example failed
+        if: ${{ steps.broken.outcome != 'failure' }}
+        run: |
+          echo "Expected Awal action to fail on the broken example."
+          exit 1

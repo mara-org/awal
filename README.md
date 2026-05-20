@@ -66,6 +66,37 @@ Run without installing:
 PYTHONPATH=src python3 -m awal examples/broken-app
 ```
 
+## GitHub Action
+
+Use Awal as a PR gate:
+
+```yaml
+name: Awal
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  readme-truth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mara-org/awal@v0
+        with:
+          path: .
+          fail-on: high
+```
+
+Write a JSON or SARIF report:
+
+```yaml
+- uses: mara-org/awal@v0
+  with:
+    path: .
+    fail-on: medium
+    format: json
+    output: awal-report.json
+```
+
 ## UI
 
 ```bash
@@ -136,7 +167,6 @@ python3 -m pip wheel . -w /tmp/awal-wheel
 ## Roadmap
 
 - Optional safe dry-run mode in a temporary folder.
-- GitHub Action for README drift on pull requests.
 - More framework port detection.
 - Monorepo workspace detection.
 - Markdown report export.

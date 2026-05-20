@@ -91,6 +91,14 @@ class AwalTests(unittest.TestCase):
         self.assertEqual(data["status"], "block")
         self.assertGreater(data["summary"]["total"], 0)
 
+    def test_action_metadata_exists(self):
+        action = Path("action.yml").read_text(encoding="utf-8")
+        workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+        self.assertIn("using: composite", action)
+        self.assertIn("awal \"${{ inputs.path }}\"", action)
+        self.assertIn("Action blocks broken example", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
