@@ -74,7 +74,8 @@ ENV_USAGE_PATTERNS = (
     re.compile(r"\bprocess\.env\[['\"]([A-Z][A-Z0-9_]{2,})['\"]\]"),
     re.compile(r"\bimport\.meta\.env\.([A-Z][A-Z0-9_]{2,})"),
     re.compile(r"\bDeno\.env\.get\(['\"]([A-Z][A-Z0-9_]{2,})['\"]\)"),
-    re.compile(r"\bos\.environ(?:\.get)?\(['\"]([A-Z][A-Z0-9_]{2,})['\"]\)"),
+    re.compile(r"\bos\.environ\[['\"]([A-Z][A-Z0-9_]{2,})['\"]\]"),
+    re.compile(r"\bos\.environ\.get\(['\"]([A-Z][A-Z0-9_]{2,})['\"]\)"),
     re.compile(r"\bos\.getenv\(['\"]([A-Z][A-Z0-9_]{2,})['\"]\)"),
     re.compile(r"\bENV\[['\"]([A-Z][A-Z0-9_]{2,})['\"]\]"),
 )
@@ -95,6 +96,7 @@ class RepoSurface:
     readme_text: str
     commands: tuple[ReadmeCommand, ...]
     package_scripts: dict[str, str]
+    has_package_json: bool
     package_manager: str | None
     has_pyproject: bool
     has_setup_py: bool
@@ -160,6 +162,7 @@ def inspect_repo(root: Path) -> RepoSurface:
         readme_text=readme_text,
         commands=tuple(extract_commands(readme_text)),
         package_scripts=package_scripts,
+        has_package_json=(root / "package.json").exists(),
         package_manager=detect_package_manager(root),
         has_pyproject=(root / "pyproject.toml").exists(),
         has_setup_py=(root / "setup.py").exists(),
@@ -193,9 +196,22 @@ def command_findings(surface: RepoSurface) -> list[Finding]:
             )
         findings.extend(cd_findings(surface, text, command.line))
         script = package_script_from_command(text)
-        if script is not None and surface.package_scripts:
+        if script is not None:
             script_name, display = script
-            if script_name not in surface.package_scripts:
+            if not surface.has_package_json:
+                findings.append(
+                    Finding(
+                        file=readme_file(surface),
+                        line=command.line,
+                        severity="high",
+                        category="missing_package_manifest",
+                        excerpt=display,
+                        why_it_matters="The README asks new developers to run a package script, but the repo has no package.json.",
+                        suggested_review="Add package.json with the documented script or fix the README command.",
+                        rule_id="missing_package_manifest",
+                    )
+                )
+            elif script_name not in surface.package_scripts:
                 findings.append(
                     Finding(
                         file=readme_file(surface),
@@ -499,8 +515,11 @@ def package_script_from_command(command: str) -> tuple[str, str] | None:
     match = re.search(r"\b(?:npm|pnpm|bun)\s+run\s+([A-Za-z0-9:_-]+)\b", command)
     if match:
         return match.group(1), match.group(0)
+    match = re.search(r"\byarn\s+run\s+([A-Za-z0-9:_-]+)\b", command)
+    if match:
+        return match.group(1), match.group(0)
     match = re.search(r"\byarn\s+([A-Za-z0-9:_-]+)\b", command)
-    if match and match.group(1) not in {"add", "install", "global", "dlx"}:
+    if match and match.group(1) not in {"add", "install", "global", "dlx", "run"}:
         return match.group(1), match.group(0)
     if re.search(r"\bnpm\s+start\b", command):
         return "start", "npm start"
