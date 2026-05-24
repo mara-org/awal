@@ -1,6 +1,9 @@
 name: Awal
 description: Check whether README setup instructions match the repository a fresh developer cloned.
 author: Mara
+branding:
+  icon: check-circle
+  color: blue
 
 inputs:
   path:

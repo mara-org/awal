@@ -16,11 +16,13 @@ No command execution. No network calls. No cloud upload. No LLM.
 python3 -m pip install -e .
 ```
 
-Later, if the package earns it:
+Install the first tagged CLI release directly from GitHub:
 
 ```bash
-pip install awal
+python3 -m pip install "git+https://github.com/mara-org/awal.git@v0.1.0"
 ```
+
+PyPI can come later if the package earns it.
 
 ## Quick Start
 
@@ -78,7 +80,7 @@ Open `http://127.0.0.1:8774/` to type a local repo path and scan it.
 
 ## GitHub Action
 
-Use Awal as a PR gate. Pin a release tag when one exists; while testing the repo directly, use `main`:
+Use Awal as a PR gate:
 
 ```yaml
 name: Awal
@@ -90,7 +92,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: mara-org/awal@main
+      - uses: mara-org/awal@v0.1.0
         with:
           path: .
           fail-on: high
