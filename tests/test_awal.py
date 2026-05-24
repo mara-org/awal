@@ -45,6 +45,41 @@ class AwalTests(unittest.TestCase):
         self.assertEqual(report.status, "block")
         self.assertIn("undocumented_env_var", {finding.category for finding in report.findings})
 
+    def test_python_os_environ_subscript_counts_as_env_usage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "README.md").write_text("```bash\npython app.py\n```", encoding="utf-8")
+            (root / ".env.example").write_text("DATABASE_URL=postgres://localhost/app\n", encoding="utf-8")
+            (root / "requirements.txt").write_text("flask\n", encoding="utf-8")
+            (root / "app.py").write_text('import os\nprint(os.environ["API_TOKEN"])\n', encoding="utf-8")
+
+            report = scan_path(root)
+
+        self.assertEqual(report.status, "block")
+        self.assertIn("undocumented_env_var", {finding.category for finding in report.findings})
+
+    def test_missing_package_json_still_blocks_documented_script(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "README.md").write_text("```bash\nnpm run dev\n```", encoding="utf-8")
+
+            report = scan_path(root)
+
+        self.assertEqual(report.status, "block")
+        self.assertIn("missing_package_manifest", {finding.category for finding in report.findings})
+
+    def test_yarn_run_reads_actual_script_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "README.md").write_text("```bash\nyarn run dev\n```", encoding="utf-8")
+            (root / "package.json").write_text('{"scripts":{"dev":"vite"}}', encoding="utf-8")
+            (root / "yarn.lock").write_text("", encoding="utf-8")
+
+            report = scan_path(root)
+
+        self.assertNotIn("missing_package_script", {finding.category for finding in report.findings})
+        self.assertNotIn("missing_package_manifest", {finding.category for finding in report.findings})
+
     def test_env_example_secret_is_critical(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

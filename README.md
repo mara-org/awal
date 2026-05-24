@@ -2,7 +2,7 @@
 
 README truth check for developer onboarding.
 
-Awal is a small local CLI that scans the README and compares it with the repo surface to ensure the first-run path works: missing package scripts, npm/yarn drift, missing compose files, stale env files, and broken Docker commands.
+Awal is a small local CLI that checks whether a repo's README still matches the repo itself. It catches missing package scripts, package-manager drift, missing compose files, stale env examples, broken Docker notes, missing local ports, and setup commands that no fresh developer can actually run.
 
 No command execution. No network calls. No cloud upload. No LLM.
 
@@ -78,7 +78,7 @@ Open `http://127.0.0.1:8774/` to type a local repo path and scan it.
 
 ## GitHub Action
 
-Use Awal as a PR gate:
+Use Awal as a PR gate. Pin a release tag when one exists; while testing the repo directly, use `main`:
 
 ```yaml
 name: Awal
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: mara-org/awal@v0
+      - uses: mara-org/awal@main
         with:
           path: .
           fail-on: high
@@ -110,4 +110,6 @@ Awal does not run your README commands. It statically checks whether the command
 
 ## About
 
-Maintained by [mara](https://github.com/mara-org). Created by the CTO.
+Maintained by [Mara](https://github.com/mara-org).
+
+Created by [@gqnxx](https://github.com/gqnxx).
